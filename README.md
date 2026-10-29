@@ -85,7 +85,7 @@ Pour une seule machine : `bash tools/install-alloy.sh IP_LOGS [--docker] [--labe
 
 Ouvre `http://IP_LOGS:3000` (utilisateur `admin`).
 
-- **Dashboards → Homelab → Homelab / Logs** : la vue d'ensemble. Le champ *Recherche* filtre les lignes en direct.
+- **Dashboards → Homelab → Homelab / Logs** : la vue d'ensemble. De haut en bas : quatre indicateurs (machines actives, logs et erreurs sur 1 h, erreurs sur 5 min), deux graphiques par machine, les sources les plus bavardes, les dernières erreurs, puis tous les logs. Chaque ligne commence par `[machine] service`. Le champ *Recherche* filtre les lignes en direct. Survole le titre d'un panneau pour lire son explication.
 - **Drilldown → Logs** : navigation visuelle par machine (label `host`), service (`unit`) et niveau (`level`).
 - **Explore** : requêtes LogQL, par exemple `{host="glance"} |= "error"`.
 
@@ -115,6 +115,12 @@ apt update && apt install --only-upgrade loki grafana
 ```
 
 Même principe pour l'agent : `apt install --only-upgrade alloy` dans chaque machine.
+
+Pour récupérer la dernière version du tableau de bord, depuis l'hôte Proxmox (Grafana le recharge seul en quelques secondes) :
+
+```
+pct exec <ctid> -- wget -qO /var/lib/grafana/dashboards/homelab-logs.json https://raw.githubusercontent.com/nathan-drancourt/proxmox-logs-homelab/main/tools/grafana/homelab-logs.json
+```
 
 * * *
 
