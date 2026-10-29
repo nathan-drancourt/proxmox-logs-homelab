@@ -29,7 +29,7 @@ apt-get install -y -qq loki grafana >/dev/null
 
 # ---------- Loki ----------
 msg "Configuration de Loki (rétention ${RETENTION_DAYS} jours)"
-install -d -o loki -g loki /var/lib/loki
+install -d -o loki /var/lib/loki
 cat > /etc/loki/config.yml <<EOF
 auth_enabled: false
 
@@ -77,7 +77,7 @@ compactor:
 analytics:
   reporting_enabled: false
 EOF
-chown loki:loki /etc/loki/config.yml
+chown loki /etc/loki/config.yml
 systemctl enable --now loki >/dev/null 2>&1
 systemctl restart loki
 
