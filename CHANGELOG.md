@@ -6,6 +6,7 @@
 - Le compte d'erreurs ignore les lignes que Loki et Grafana écrivent sur leurs propres requêtes.
 - Le panneau des sources les plus bavardes inclut les conteneurs Docker.
 - Ajout de `tools/detect-docker.sh` (liste les LXC qui ont Docker).
+- Logs plus lisibles dans Grafana : codes couleur et horodatages en double retirés, message extrait des lignes clé=valeur, erreurs répétées regroupées.
 - Corrections : choix du modèle Debian selon l'architecture, propriétaire de Loki, prérequis de l'agent non mis à jour.
 
 ## 0.1.0 (2026-10-29)
