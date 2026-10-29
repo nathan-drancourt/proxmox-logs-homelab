@@ -34,7 +34,7 @@ Sur l'hôte **Proxmox VE** (root) :
 bash -c "$(wget -qLO - https://raw.githubusercontent.com/nathan-drancourt/proxmox-logs-homelab/main/ct/logs.sh)"
 ```
 
-Le script pose quelques questions (ID, IP, stockage, rétention) puis crée le conteneur et installe tout. À la fin il affiche l'adresse de Grafana et les mots de passe.
+Comme les scripts community-scripts, il propose un menu **Par défaut** (aucune question) ou **Avancé** (ID, IP, stockage, rétention). Il crée ensuite le conteneur complet et installe tout. À la fin il affiche l'adresse de Grafana et les mots de passe.
 
 **Conteneur par défaut :** Debian (dernier modèle 12 ou 13) · non privilégié · 2 vCPU · 2 Gio de RAM · 20 Go · démarrage automatique.
 

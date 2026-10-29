@@ -54,7 +54,27 @@ STORAGE="${STORAGE:-}" TPL_STORAGE="${TPL_STORAGE:-}" BRIDGE="${BRIDGE:-}"
 IP="${IP:-}" GW="${GW:-}" DNS="${DNS:-}"
 RETENTION="${LOGS_RETENTION_DAYS:-}"
 
-echo
+cat <<'BANNER'
+
+  _      ___   ____ ____
+ | |    / _ \ / ___/ ___|
+ | |   | | | | |  _\___ \
+ | |___| |_| | |_| |___) |
+ |_____|\___/ \____|____/   Loki + Grafana pour Proxmox VE
+
+BANNER
+
+# Menu Par défaut / Avancé (comme community-scripts)
+if [[ $YES -eq 0 && -t 0 ]] && command -v whiptail >/dev/null 2>&1; then
+  MODE=$(whiptail --backtitle "Homelab Logs" --title "Centre de logs" \
+    --menu "Choisis le mode d'installation :" 14 70 3 \
+    1 "Par défaut (DHCP, 2 vCPU, 2 Gio, 20 Go, rétention 14 jours)" \
+    2 "Avancé (je choisis chaque paramètre)" \
+    3 "Annuler" 3>&1 1>&2 2>&3) || exit 0
+  [[ "$MODE" == "3" ]] && exit 0
+  [[ "$MODE" == "1" ]] && YES=1
+fi
+
 msg "Configuration du conteneur (Entrée = valeur par défaut)"
 ask CTID        "ID du conteneur"                         "$DEF_CTID"
 ask CT_NAME     "Nom d'hôte"                              "logs"
