@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homelab Logs</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='%233fb950'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0d1117; --card: #151b23; --card-hover: #1a222c; --line: #232c37;
+    --text: #e6edf3; --muted: #8b949e; --faint: #5b6673;
+    --ok: #3fb950; --warn: #d29922; --bad: #f85149; --quiet: #5b6673; --accent: #58a6ff;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f8fa; --card: #ffffff; --card-hover: #f0f3f6; --line: #d8dee4;
+      --text: #1f2328; --muted: #59636e; --faint: #8c959f;
+      --ok: #1a7f37; --warn: #9a6700; --bad: #cf222e; --quiet: #8c959f; --accent: #0969da;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: dark light; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin-bottom: 26px; }
+  h1 { font-size: 22px; font-weight: 650; margin: 0; letter-spacing: -.01em; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 10px;
+    border-radius: 999px; font-size: 13px; font-weight: 550;
+    background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c);
+    border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
+  }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+  .spacer { flex: 1; }
+  .seg { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button {
+    border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px;
+    padding: 5px 13px; border-radius: 7px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--line); color: var(--text); }
+  .link { color: var(--muted); font-size: 13px; text-decoration: none; }
+  .link:hover { color: var(--text); }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 6px 28px; margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+  .summary b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .card {
+    position: relative; text-align: left; font: inherit; color: inherit; cursor: pointer;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 16px 12px; overflow: hidden; transition: background .15s, border-color .15s, transform .15s;
+  }
+  .card:hover { background: var(--card-hover); transform: translateY(-1px); }
+  .card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .card .top { display: flex; align-items: center; gap: 9px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); }
+  .name { font-weight: 620; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .when { margin: 2px 0 0 18px; font-size: 12.5px; color: var(--muted); }
+  .spark { height: 38px; margin: 12px 0 8px; }
+  .spark svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .spark .area { fill: color-mix(in srgb, var(--accent) 16%, transparent); }
+  .spark .line { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: .85; }
+  .card.quiet .spark .area { fill: color-mix(in srgb, var(--quiet) 14%, transparent); }
+  .card.quiet .spark .line { stroke: var(--quiet); }
+  .nums { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .nums b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 620; }
+  .nums .err b { color: var(--c); }
+
+  .feedhead { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 38px 0 12px; }
+  .feedhead h2 { font-size: 17px; font-weight: 640; margin: 0; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; background: var(--card); color: var(--text);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 5px 3px 11px; font-size: 13px;
+  }
+  .chip[hidden] { display: none; }
+  .chip button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; padding: 0 5px; }
+  .chip button:hover { color: var(--text); }
+  input[type="search"] {
+    background: var(--card); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 14px;
+    padding: 7px 12px; border-radius: 10px; min-width: 200px; flex: 1; max-width: 340px;
+  }
+  input[type="search"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .feed { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .row {
+    display: grid; grid-template-columns: 74px 128px 1fr; gap: 6px 14px; padding: 8px 14px;
+    border-top: 1px solid var(--line); font-size: 13px; align-items: baseline;
+  }
+  .row:first-child { border-top: 0; }
+  .row time { color: var(--faint); font-variant-numeric: tabular-nums; }
+  .row .src { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .src b { color: var(--text); font-weight: 600; }
+  .row .msg {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; word-break: break-word;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .row.is-err { background: color-mix(in srgb, var(--bad) 8%, transparent); }
+  .row.is-err .msg { color: color-mix(in srgb, var(--bad) 70%, var(--text)); }
+  .empty { padding: 34px 14px; text-align: center; color: var(--muted); }
+
+  .banner {
+    display: none; margin-bottom: 18px; padding: 11px 14px; border-radius: 10px; font-size: 14px;
+    background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad);
+    border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
+  }
+  .foot { margin-top: 18px; text-align: center; color: var(--faint); font-size: 12.5px; }
+
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 62px 1fr; }
+    .row .msg { grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Homelab</h1>
+    <span class="pill" id="status" style="--c: var(--quiet)"><i></i><span>Chargement</span></span>
+    <span class="spacer"></span>
+    <div class="seg" role="group" aria-label="Période" id="range">
+      <button data-r="3600" aria-pressed="false">1 h</button>
+      <button data-r="21600" aria-pressed="true">6 h</button>
+      <button data-r="86400" aria-pressed="false">24 h</button>
+    </div>
+    <a class="link" id="grafana" href="#" target="_blank" rel="noopener">Ouvrir Grafana</a>
+  </header>
+
+  <div class="banner" id="banner"></div>
+  <p class="summary" id="summary"></p>
+
+  <section class="grid" id="grid" aria-label="Machines"></section>
+
+  <div class="feedhead">
+    <h2>Activité récente</h2>
+    <span class="chip" id="hostchip" hidden><span></span><button type="button" aria-label="Retirer le filtre machine">×</button></span>
+    <div class="seg" role="group" aria-label="Filtre" id="mode">
+      <button data-m="all" aria-pressed="true">Tout</button>
+      <button data-m="err" aria-pressed="false">Erreurs</button>
+    </div>
+    <input type="search" id="search" placeholder="Rechercher dans les logs" aria-label="Rechercher dans les logs">
+  </div>
+  <div class="feed" id="feed"></div>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+const ERR = '(?i)(error|erreur|fatal|critical|panic|failed|denied)';
+const NOISE = 'caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time';
+const ERR_FILTER = ` |~ "${ERR}" !~ "${NOISE}"`;
+const API = '/loki/api/v1/';
+const POINTS = 48;
+
+const state = { range: 21600, host: null, mode: 'all', search: '' };
+const $ = (s) => document.querySelector(s);
+const fr = new Intl.NumberFormat('fr-FR');
+
+async function loki(path, params) {
+  const r = await fetch(API + path + '?' + new URLSearchParams(params));
+  if (!r.ok) throw new Error('Loki a répondu ' + r.status);
+  return (await r.json()).data;
+}
+
+function logql(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function stripAnsi(s) { return s.replace(/\x1b?\[[0-9;]*m/g, ''); }
+
+function ago(ms) {
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 60) return "à l'instant";
+  const m = Math.round(s / 60);
+  if (m < 60) return `il y a ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 48) return `il y a ${h} h`;
+  return `il y a ${Math.round(h / 24)} j`;
+}
+
+function series(result, start, step) {
+  const out = {};
+  for (const s of result) {
+    const arr = new Array(POINTS + 1).fill(0);
+    for (const [t, v] of s.values) {
+      const i = Math.min(POINTS, Math.max(0, Math.round((t - start) / step)));
+      arr[i] += Number(v);
+    }
+    out[s.metric.host] = arr;
+  }
+  return out;
+}
+
+function spark(values) {
+  const max = Math.max(...values, 1), n = values.length - 1;
+  const pts = values.map((v, i) => [(i / n) * 120, 34 - (v / max) * 30]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"><path class="area" d="${line} L120 36 L0 36 Z"/><path class="line" d="${line}"/></svg>`;
+}
+
+// Orange dès 1 erreur, rouge à partir de 50 erreurs par heure en moyenne sur la période.
+function level(errors, silent) {
+  if (silent) return { c: 'var(--quiet)', cls: 'quiet' };
+  if (errors / (state.range / 3600) >= 50) return { c: 'var(--bad)', cls: '' };
+  if (errors >= 1) return { c: 'var(--warn)', cls: '' };
+  return { c: 'var(--ok)', cls: '' };
+}
+
+async function refreshCards() {
+  const end = Math.floor(Date.now() / 1000);
+  const step = Math.ceil(state.range / POINTS);
+  const start = end - step * POINTS;
+  const base = { start, end, step };
+  const [names, logs, errs] = await Promise.all([
+    loki('label/host/values', { start: end - 86400, end }),
+    loki('query_range', { ...base, query: `sum by (host) (count_over_time({host=~".+"}[${step}s]))` }),
+    loki('query_range', { ...base, query: `sum by (host) (count_over_time({host=~".+"}${ERR_FILTER} [${step}s]))` }),
+  ]);
+  const L = series(logs.result, start, step), E = series(errs.result, start, step);
+  const hosts = names.slice().sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+
+  const last = await Promise.all(hosts.map(async (h) => {
+    try {
+      const d = await loki('query_range', { query: `{host="${h}"}`, limit: 1, direction: 'backward', start: end - 86400, end });
+      const v = d.result[0] && d.result[0].values[0];
+      return v ? Number(v[0]) / 1e6 : 0;
+    } catch { return 0; }
+  }));
+
+  let totalLogs = 0, totalErr = 0, active = 0, worst = 'ok';
+  const html = hosts.map((h, i) => {
+    const l = L[h] || new Array(POINTS + 1).fill(0), e = E[h] || [];
+    const nl = l.reduce((a, b) => a + b, 0), ne = e.reduce((a, b) => a + b, 0);
+    const silent = nl === 0;
+    if (!silent) active++;
+    totalLogs += nl; totalErr += ne;
+    const lv = level(ne, silent);
+    if (lv.c === 'var(--bad)') worst = 'bad'; else if (lv.c === 'var(--warn)' && worst !== 'bad') worst = 'warn';
+    const when = last[i] ? 'dernier log ' + ago(last[i]) : 'aucun log sur 24 h';
+    return `<button class="card ${lv.cls}" style="--c:${lv.c}" data-host="${esc(h)}" aria-pressed="${state.host === h}">
+      <div class="top"><span class="dot"></span><span class="name">${esc(h)}</span></div>
+      <div class="when">${when}</div>
+      <div class="spark">${spark(l)}</div>
+      <div class="nums"><span>Logs <b>${fr.format(nl)}</b></span><span class="err">Erreurs <b>${fr.format(ne)}</b></span></div>
+    </button>`;
+  }).join('');
+  $('#grid').innerHTML = html || '<div class="empty">Aucune machine ne s\'est encore connectée.</div>';
+
+  const label = { ok: ['Tout va bien', 'var(--ok)'], warn: ['Quelques erreurs', 'var(--warn)'], bad: ['À surveiller', 'var(--bad)'] }[worst];
+  const pill = $('#status');
+  pill.style.setProperty('--c', label[1]);
+  pill.lastElementChild.textContent = label[0];
+  $('#summary').innerHTML =
+    `<span><b>${active}</b> sur <b>${hosts.length}</b> machines actives</span>` +
+    `<span><b>${fr.format(totalLogs)}</b> logs</span>` +
+    `<span><b>${fr.format(totalErr)}</b> erreurs</span>`;
+}
+
+async function refreshFeed() {
+  const end = Math.floor(Date.now() / 1000);
+  let q = state.host ? `{host="${state.host}"}` : '{host=~".+"}';
+  if (state.mode === 'err') q += ERR_FILTER;
+  if (state.search.trim()) q += ` |~ "(?i)${logql(state.search.trim())}"`;
+  const d = await loki('query_range', { query: q, limit: 120, direction: 'backward', start: end - state.range, end });
+  const rows = [];
+  for (const s of d.result) for (const [t, line] of s.values) rows.push({ t: Number(t) / 1e6, host: s.stream.host, src: s.stream.unit || s.stream.container || '', line });
+  rows.sort((a, b) => b.t - a.t);
+  const feed = $('#feed');
+  feed.textContent = '';
+  if (!rows.length) {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = state.mode === 'err' ? 'Aucune erreur sur cette période.' : 'Aucun log sur cette période.';
+    feed.append(e);
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const r of rows.slice(0, 120)) {
+    const msg = stripAnsi(r.line);
+    const row = document.createElement('div');
+    row.className = 'row' + (state.mode === 'err' || (new RegExp(ERR.slice(4), 'i').test(msg) && !new RegExp(NOISE, 'i').test(msg)) ? ' is-err' : '');
+    const time = document.createElement('time');
+    time.textContent = new Date(r.t).toLocaleTimeString('fr-FR');
+    const src = document.createElement('span');
+    src.className = 'src';
+    const b = document.createElement('b');
+    b.textContent = r.host;
+    src.append(b, r.src ? ' · ' + r.src : '');
+    const m = document.createElement('span');
+    m.className = 'msg';
+    m.textContent = msg;
+    row.append(time, src, m);
+    frag.append(row);
+  }
+  feed.append(frag);
+}
+
+let busy = false, again = false;
+async function refresh() {
+  if (busy) { again = true; return; }
+  busy = true;
+  try {
+    await Promise.all([refreshCards(), refreshFeed()]);
+    $('#banner').style.display = 'none';
+    $('#foot').textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR') + ' · rafraîchi toutes les 30 s';
+  } catch (e) {
+    const b = $('#banner');
+    b.textContent = 'Impossible de joindre Loki (' + e.message + '). Nouvel essai dans 30 s.';
+    b.style.display = 'block';
+  } finally {
+    busy = false;
+    if (again) { again = false; refresh(); }
+  }
+}
+
+function syncChip() {
+  const chip = $('#hostchip');
+  chip.hidden = !state.host;
+  chip.firstElementChild.textContent = state.host || '';
+}
+
+$('#range').addEventListener('click', (ev) => {
+  const b = ev.target.closest('button'); if (!b) return;
+  state.range = Number(b.dataset.r);
+  document.querySelectorAll('#range button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+  refresh();
+});
+$('#mode').addEventListener('click', (ev) => {
+  const b = ev.target.closest('button'); if (!b) return;
+  state.mode = b.dataset.m;
+  document.querySelectorAll('#mode button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+  refresh();
+});
+$('#grid').addEventListener('click', (ev) => {
+  const c = ev.target.closest('.card'); if (!c) return;
+  state.host = state.host === c.dataset.host ? null : c.dataset.host;
+  syncChip(); refresh();
+});
+$('#hostchip button').addEventListener('click', () => { state.host = null; syncChip(); refresh(); });
+let timer;
+$('#search').addEventListener('input', (ev) => {
+  clearTimeout(timer);
+  timer = setTimeout(() => { state.search = ev.target.value; refresh(); }, 350);
+});
+$('#grafana').href = location.protocol + '//' + location.hostname + ':3000/';
+
+refresh();
+setInterval(() => { if (!document.hidden) refresh(); }, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+</script>
+</body>
+</html>

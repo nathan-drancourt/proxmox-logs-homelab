@@ -91,6 +91,16 @@ Ouvre `http://IP_LOGS:3000` (utilisateur `admin`).
 
 Labels disponibles : `host` · `job` (`journal` ou `docker`) · `unit` · `level` · `container`.
 
+### Page web simple (facultatif)
+
+Une page plus légère que Grafana : une carte par machine (état, courbe, logs, erreurs), un filtre par période, une recherche et le fil des dernières lignes. Elle s'installe dans le LXC des logs avec nginx, sur le port 8080 :
+
+```
+pct exec <ctid> -- bash -c "$(wget -qLO - https://raw.githubusercontent.com/nathan-drancourt/proxmox-logs-homelab/main/tools/install-dashboard.sh)"
+```
+
+Ouvre ensuite `http://IP_LOGS:8080/`. Le relais vers Loki est en lecture seule. Pour changer le port : `DASHBOARD_PORT=9000`. Pour mettre la page à jour, relance la même commande.
+
 * * *
 
 ## Disque et rétention
@@ -144,6 +154,8 @@ install/logs-install.sh         provisionnement dans le conteneur (Loki + Grafan
 tools/install-alloy.sh          agent pour une machine Debian ou Ubuntu
 tools/deploy-agents.sh          déploiement en masse (LXC, hôte, VM)
 tools/detect-docker.sh          liste les LXC qui ont Docker
+tools/install-dashboard.sh      installe la page web simple (nginx) dans le LXC des logs
+tools/web/index.html            la page web
 tools/grafana/homelab-logs.json tableau de bord provisionné
 docs/ARCHITECTURE.md            schéma et choix techniques
 ```
