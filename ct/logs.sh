@@ -109,7 +109,8 @@ GRAFANA_PW=$(gen_pw)
 # ---------- Modèle Debian ----------
 msg "Recherche du dernier modèle Debian"
 pveam update >/dev/null 2>&1 || true
-TEMPLATE=$(pveam available --section system | awk '/debian-1[23]-standard/ {print $2}' | sort -V | tail -1)
+HOST_ARCH=$(dpkg --print-architecture)
+TEMPLATE=$(pveam available --section system | awk -v arch="$HOST_ARCH" '$2 ~ /debian-1[23]-standard/ && $3 == arch {print $2}' | sort -V | tail -1)
 [[ -n "$TEMPLATE" ]] || die "Aucun modèle Debian 12 ou 13 disponible."
 if ! pveam list "$TPL_STORAGE" | grep -q "$TEMPLATE"; then
   msg "Téléchargement de $TEMPLATE"
