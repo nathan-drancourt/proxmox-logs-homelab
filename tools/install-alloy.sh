@@ -97,5 +97,9 @@ usermod -aG systemd-journal alloy 2>/dev/null || true
 systemctl enable alloy >/dev/null 2>&1
 systemctl restart alloy
 sleep 2
-systemctl is-active --quiet alloy && echo "Alloy actif sur ${HOST_LABEL} -> ${LOKI_IP}:3100" \
-  || { echo "Alloy ne démarre pas : journalctl -u alloy" >&2; exit 3; }
+if systemctl is-active --quiet alloy; then
+  echo "Alloy actif sur ${HOST_LABEL} -> ${LOKI_IP}:3100"
+else
+  echo "Alloy ne démarre pas : journalctl -u alloy" >&2
+  exit 3
+fi

@@ -17,8 +17,9 @@ ok()  { printf '\033[1;32m[ ok ]\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31m[erreur]\033[0m %s\n' "$*" >&2; exit 1; }
 
 [[ $EUID -eq 0 ]] || die "À lancer en root sur l'hôte Proxmox."
-command -v pct >/dev/null 2>&1 && command -v pveam >/dev/null 2>&1 \
-  || die "Ce script doit tourner sur un hôte Proxmox VE."
+if ! { command -v pct >/dev/null 2>&1 && command -v pveam >/dev/null 2>&1; }; then
+  die "Ce script doit tourner sur un hôte Proxmox VE."
+fi
 
 YES=0
 for a in "$@"; do
