@@ -117,7 +117,7 @@
         {
           "refId": "A",
           "queryType": "instant",
-          "expr": "sum(count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|count_over_time\" [1h])) or vector(0)"
+          "expr": "sum(count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" [1h])) or vector(0)"
         }
       ],
       "fieldConfig": {
@@ -153,7 +153,7 @@
         {
           "refId": "A",
           "queryType": "instant",
-          "expr": "sum(count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|count_over_time\" [5m])) or vector(0)"
+          "expr": "sum(count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" [5m])) or vector(0)"
         }
       ],
       "fieldConfig": {
@@ -199,7 +199,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(count_over_time({host=\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|count_over_time\" [$__auto])) or vector(0)"
+          "expr": "sum(count_over_time({host=\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" [$__auto])) or vector(0)"
         }
       ],
       "fieldConfig": {
@@ -270,7 +270,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (host) (count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|count_over_time\" [$__auto]))",
+          "expr": "sum by (host) (count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" [$__auto]))",
           "legendFormat": "{{host}}"
         }
       ],
@@ -338,7 +338,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|count_over_time\" | line_format \"[{{.host}}] {{.unit}}{{.container}} : {{__line__}}\""
+          "expr": "{host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" | line_format \"[{{.host}}] {{.unit}}{{.container}} : {{__line__}}\""
         }
       ],
       "options": {
