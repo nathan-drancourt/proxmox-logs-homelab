@@ -71,6 +71,12 @@ bash tools/deploy-agents.sh 192.168.1.30 --host --docker 201 --vm nathan@192.168
 
 Le script affiche un résumé : `ok`, `ignoré` (système non Debian ou Ubuntu) ou `échec`.
 
+Pour savoir quels LXC ont Docker (donc quels ID passer à `--docker`) :
+
+```
+bash tools/detect-docker.sh
+```
+
 Pour une seule machine : `bash tools/install-alloy.sh IP_LOGS [--docker] [--label NOM]`.
 
 * * *
@@ -131,6 +137,7 @@ ct/logs.sh                      à lancer sur l'hôte Proxmox (crée le LXC)
 install/logs-install.sh         provisionnement dans le conteneur (Loki + Grafana)
 tools/install-alloy.sh          agent pour une machine Debian ou Ubuntu
 tools/deploy-agents.sh          déploiement en masse (LXC, hôte, VM)
+tools/detect-docker.sh          liste les LXC qui ont Docker
 tools/grafana/homelab-logs.json tableau de bord provisionné
 docs/ARCHITECTURE.md            schéma et choix techniques
 ```
