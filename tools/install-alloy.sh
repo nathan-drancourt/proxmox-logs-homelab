@@ -30,7 +30,7 @@ if ! command -v apt-get >/dev/null 2>&1; then
 fi
 
 apt-get update -qq
-apt-get install -y -qq ca-certificates gpg wget >/dev/null
+apt-get install -y -qq --no-upgrade ca-certificates gpg wget >/dev/null
 install -d -m 0755 /etc/apt/keyrings
 wget -qO- https://apt.grafana.com/gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/grafana.gpg
 echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" \
