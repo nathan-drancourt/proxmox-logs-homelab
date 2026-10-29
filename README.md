@@ -111,6 +111,8 @@ Trois alertes Grafana préviennent dans un salon Discord :
 | Rafale d'erreurs | plus de 40 erreurs en 10 min sur une machine |
 | Plus aucun log reçu | Loki ne reçoit plus rien depuis 10 min |
 
+Chaque message indique la gravité (⚠️ ou 🚨), la machine, la valeur mesurée, depuis quand (l'heure relative s'affiche dans ton fuseau horaire) et un lien vers le tableau de bord filtré sur cette machine. Un second message 🟢 arrive quand tout rentre dans l'ordre.
+
 1. Dans Discord : **Paramètres du serveur, Intégrations, Webhooks, Nouveau webhook**, choisis le salon, puis **Copier l'URL du webhook**. Cette URL est un secret : ne la colle ni dans un message ni dans le dépôt.
 2. Sur l'hôte Proxmox, l'URL est demandée sans s'afficher puis transmise au LXC :
 

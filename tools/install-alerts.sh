@@ -51,6 +51,31 @@ install -d -o root -g grafana -m 0750 /etc/grafana/provisioning/alerting
 cat > "$PROV" <<'EOF'
 apiVersion: 1
 
+templates:
+  - orgId: 1
+    name: homelab-discord
+    template: |
+      {{ define "homelab.title" -}}
+      {{ if eq .Status "firing" }}🔴 Alerte Homelab{{ else }}🟢 Retour à la normale{{ end }}
+      {{- end }}
+
+      {{ define "homelab.alert" -}}
+      {{ if eq .Labels.severity "critical" }}🚨{{ else }}⚠️{{ end }} **{{ .Labels.alertname }}**{{ if .Labels.host }} · `{{ .Labels.host }}`{{ end }}
+      {{ .Annotations.summary }}
+      {{- if eq .Labels.alertname "Rafale d'erreurs" }}{{ with .Values.B }}
+      📊 **{{ printf "%.0f" . }}** erreurs sur les 10 dernières minutes{{ end }}{{ end }}
+      > {{ .Annotations.description }}
+      {{ if eq .Status "firing" }}⏱️ Depuis <t:{{ .StartsAt.Unix }}:R>{{ else }}✅ Résolu <t:{{ .EndsAt.Unix }}:R>{{ end }} · [Voir les logs](__GRAFANA_URL__/d/homelab-logs{{ if .Labels.host }}?var-host={{ .Labels.host }}{{ end }})
+      {{- end }}
+
+      {{ define "homelab.message" -}}
+      {{ range .Alerts.Firing }}{{ template "homelab.alert" . }}
+
+      {{ end }}{{ range .Alerts.Resolved }}{{ template "homelab.alert" . }}
+
+      {{ end }}
+      {{- end }}
+
 contactPoints:
   - orgId: 1
     name: discord-homelab
@@ -60,6 +85,8 @@ contactPoints:
         settings:
           url: $__env{DISCORD_WEBHOOK_URL}
           use_discord_username: false
+          title: '{{ template "homelab.title" . }}'
+          message: '{{ template "homelab.message" . }}'
         disableResolveMessage: false
 
 policies:
@@ -193,6 +220,9 @@ groups:
                 - evaluator: { type: lt, params: [1] }
               refId: C
 EOF
+IP=$(hostname -I | awk '{print $1}')
+GURL="http://${IP}:3000"
+sed -i "s#__GRAFANA_URL__#${GURL}#g" "$PROV"
 chown root:grafana "$PROV"
 chmod 640 "$PROV"
 
@@ -227,8 +257,24 @@ else
 fi
 
 msg "Envoi d'un message de test sur Discord"
+read -r -d '' PAYLOAD <<'JSON' || true
+{
+  "username": "Homelab Logs",
+  "embeds": [{
+    "title": "🟢 Alertes Homelab installées",
+    "description": "Tu seras prévenu ici quand quelque chose cloche. Chaque message indique la machine, depuis quand, et un lien vers ses logs.",
+    "color": 3066993,
+    "fields": [
+      { "name": "⚠️ Machine silencieuse", "value": "Plus aucun log depuis 2 h", "inline": true },
+      { "name": "⚠️ Rafale d'erreurs", "value": "Plus de 40 erreurs en 10 min", "inline": true },
+      { "name": "🚨 Plus aucun log reçu", "value": "Loki ne reçoit plus rien depuis 10 min", "inline": true }
+    ],
+    "footer": { "text": "Homelab Logs" }
+  }]
+}
+JSON
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
-  -d '{"content":"Alertes Homelab Logs installées. Tu recevras ici les machines silencieuses, les rafales d'"'"'erreurs et les pannes de logs."}' "$URL" || true)
+  -d "$PAYLOAD" "$URL" || true)
 if [[ "$CODE" == "204" || "$CODE" == "200" ]]; then
   msg "Message de test envoyé : regarde ton salon Discord."
 else
