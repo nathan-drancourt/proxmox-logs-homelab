@@ -101,6 +101,26 @@ pct exec <ctid> -- bash -c "$(wget -qLO - https://raw.githubusercontent.com/nath
 
 Ouvre ensuite `http://IP_LOGS:8080/`. Le relais vers Loki est en lecture seule. Pour changer le port : `DASHBOARD_PORT=9000`. Pour mettre la page à jour, relance la même commande.
 
+### Alertes sur Discord (facultatif)
+
+Trois alertes Grafana préviennent dans un salon Discord :
+
+| Alerte | Se déclenche quand |
+|---|---|
+| Machine silencieuse | une machine connue n'a plus envoyé de log depuis 2 h |
+| Rafale d'erreurs | plus de 40 erreurs en 10 min sur une machine |
+| Plus aucun log reçu | Loki ne reçoit plus rien depuis 10 min |
+
+1. Dans Discord : **Paramètres du serveur, Intégrations, Webhooks, Nouveau webhook**, choisis le salon, puis **Copier l'URL du webhook**. Cette URL est un secret : ne la colle ni dans un message ni dans le dépôt.
+2. Sur l'hôte Proxmox, l'URL est demandée sans s'afficher puis transmise au LXC :
+
+```
+read -rsp "Webhook Discord : " W; echo
+pct exec <ctid> -- env DISCORD_WEBHOOK_URL="$W" bash -c "$(wget -qLO - https://raw.githubusercontent.com/nathan-drancourt/proxmox-logs-homelab/main/tools/install-alerts.sh)"
+```
+
+Le script enregistre l'URL dans `/etc/default/grafana-server` (droits 640), crée les alertes, redémarre Grafana et envoie un message de test. Si Grafana ne redémarre pas, tout est annulé. Pour changer un seuil, modifie `/etc/grafana/provisioning/alerting/homelab.yaml` puis `systemctl restart grafana-server`. Pour désactiver : supprime ce fichier et redémarre Grafana.
+
 * * *
 
 ## Disque et rétention
@@ -156,6 +176,7 @@ tools/deploy-agents.sh          déploiement en masse (LXC, hôte, VM)
 tools/detect-docker.sh          liste les LXC qui ont Docker
 tools/install-dashboard.sh      installe la page web simple (nginx) dans le LXC des logs
 tools/web/index.html            la page web
+tools/install-alerts.sh         installe les alertes Discord (Grafana)
 tools/grafana/homelab-logs.json tableau de bord provisionné
 docs/ARCHITECTURE.md            schéma et choix techniques
 ```
