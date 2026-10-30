@@ -247,9 +247,14 @@ if [[ $ok -ne 1 ]]; then
   die "Grafana n'a pas redémarré avec les alertes. Tout a été annulé."
 fi
 
-# Vérification par l'API, avec le mot de passe admin enregistré à l'installation.
-PW=$(sed -n 's/^grafana_password=//p' /root/.credentials 2>/dev/null || true)
+# Vérification par l'API. Mot de passe : GRAFANA_ADMIN_PASSWORD, sinon celui enregistré
+# à l'installation (/root/.credentials), qui est périmé si tu l'as changé depuis.
+PW="${GRAFANA_ADMIN_PASSWORD:-$(sed -n 's/^grafana_password=//p' /root/.credentials 2>/dev/null || true)}"
+AUTH_CODE=000
 if [[ -n "$PW" ]]; then
+  AUTH_CODE=$(curl -s -o /dev/null -w '%{http_code}' -u "admin:$PW" http://127.0.0.1:3000/api/v1/provisioning/alert-rules || true)
+fi
+if [[ "$AUTH_CODE" == "200" ]]; then
   N=$(curl -fs -u "admin:$PW" http://127.0.0.1:3000/api/v1/provisioning/alert-rules 2>/dev/null \
       | grep -o '"uid":"homelab-[a-z-]*"' | sort -u | wc -l || true)
   C=$(curl -fs -u "admin:$PW" http://127.0.0.1:3000/api/v1/provisioning/contact-points 2>/dev/null \
@@ -261,7 +266,8 @@ if [[ -n "$PW" ]]; then
     journalctl -u grafana-server --since "-2 min" --no-pager 2>/dev/null | grep -iE "alerting|provision" | tail -8 >&2 || true
   fi
 else
-  msg "Mot de passe admin introuvable : chargement non vérifié par l'API."
+  msg "Chargement non vérifié par l'API (mot de passe admin absent ou modifié, code ${AUTH_CODE})."
+  msg "Contrôle à la main : Grafana, Alerting, Alert rules (3 règles) et Contact points (discord-homelab)."
 fi
 
 msg "Envoi d'un message de test sur Discord"
