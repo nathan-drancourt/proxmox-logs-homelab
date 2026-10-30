@@ -7,6 +7,7 @@
 - Le panneau des sources les plus bavardes inclut les conteneurs Docker.
 - Ajout de `tools/detect-docker.sh` (liste les LXC qui ont Docker).
 - Ajout facultatif d'une page web simple (`tools/web/index.html`) et de son installation nginx (`tools/install-dashboard.sh`).
+- `ct/logs.sh` : propose de renommer le conteneur (nom par défaut `Grafana`, y compris après le choix « Par défaut »), vérifie que le nom est valide, affiche le crédit de l'auteur au lancement et à la fin, et donne une commande de téléchargement qui marche sans `git` pour l'étape suivante.
 - Alertes Discord facultatives (`tools/install-alerts.sh`) : machine silencieuse (3 h), erreur grave (mémoire, disque, plantage, service important arrêté), plus aucun log reçu. Le simple mot « error » ne déclenche plus de message.
 - Le compte d'erreurs ignore aussi les requêtes annulées (`context canceled`), les messages d'information qui contiennent le mot « error » et le refus AppArmor connu de `rsyslogd` dans un LXC. Les autres refus restent comptés.
 - Logs plus lisibles dans Grafana : codes couleur et horodatages en double retirés, message extrait des lignes clé=valeur, erreurs répétées regroupées.

@@ -34,11 +34,13 @@ Sur l'hôte **Proxmox VE** (root) :
 bash -c "$(wget -qLO - https://raw.githubusercontent.com/nathan-drancourt/proxmox-logs-homelab/main/ct/logs.sh)"
 ```
 
-Comme les scripts community-scripts, il propose un menu **Par défaut** (aucune question) ou **Avancé** (ID, IP, stockage, rétention). Il crée ensuite le conteneur complet et installe tout. À la fin il affiche l'adresse de Grafana et les mots de passe.
+Comme les scripts community-scripts, il propose un menu **Par défaut** ou **Avancé** (ID, IP, stockage, rétention). Dans les deux cas, il te **propose de renommer le conteneur** : Entrée garde le nom par défaut `Grafana`, ou tape un autre nom (lettres, chiffres et tirets). Il crée ensuite le conteneur complet et installe tout. À la fin il affiche l'adresse de Grafana et les mots de passe.
 
-**Conteneur par défaut :** Debian (dernier modèle 12 ou 13) · non privilégié · 2 vCPU · 2 Gio de RAM · 20 Go · démarrage automatique.
+**Conteneur par défaut :** nom `Grafana` · Debian (dernier modèle 12 ou 13) · non privilégié · 2 vCPU · 2 Gio de RAM · 20 Go · démarrage automatique.
 
-Sans question : `bash ct/logs.sh --yes` (les valeurs viennent des variables d'environnement, voir l'en-tête du script).
+Le nom du conteneur devient aussi le nom de cette machine dans Grafana (label `host`).
+
+Sans aucune question : `bash ct/logs.sh --yes` (les valeurs viennent des variables d'environnement, par exemple `CT_NAME=Monitoring`, voir l'en-tête du script).
 
 > Donne une **IP fixe** au conteneur (ou une réservation DHCP dans ta box). Les agents s'y connectent.
 

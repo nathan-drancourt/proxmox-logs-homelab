@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Crée un LXC Debian « logs » (Loki + Grafana) sur un hôte Proxmox VE.
+# Crée un LXC Debian (Loki + Grafana) sur un hôte Proxmox VE. Nom proposé : « Grafana ».
 # À lancer en root sur l'hôte Proxmox :
 #   bash -c "$(wget -qLO - https://raw.githubusercontent.com/nathan-drancourt/proxmox-logs-homelab/main/ct/logs.sh)"
 #
@@ -12,6 +12,10 @@ set -Eeuo pipefail
 REPO_BRANCH="${LOGS_REPO_BRANCH:-main}"
 REPO_RAW="${LOGS_REPO_RAW:-https://raw.githubusercontent.com/nathan-drancourt/proxmox-logs-homelab/${REPO_BRANCH}}"
 
+AUTHOR="nathan-drancourt"
+REPO_URL="https://github.com/nathan-drancourt/proxmox-logs-homelab"
+DEFAULT_NAME="Grafana"
+
 msg() { printf '\033[1;34m[logs]\033[0m %s\n' "$*"; }
 ok()  { printf '\033[1;32m[ ok ]\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31m[erreur]\033[0m %s\n' "$*" >&2; exit 1; }
@@ -21,24 +25,31 @@ if ! { command -v pct >/dev/null 2>&1 && command -v pveam >/dev/null 2>&1; }; th
   die "Ce script doit tourner sur un hôte Proxmox VE."
 fi
 
-YES=0
+YES=0      # 1 = aucune question (option --yes ou choix « Par défaut » du menu)
+YES_CLI=0  # 1 = option --yes passée en ligne de commande : vraiment aucune question
 for a in "$@"; do
   case "$a" in
-    --yes|-y) YES=1 ;;
+    --yes|-y) YES=1; YES_CLI=1 ;;
     -h|--help) sed -n '2,11p' "$0" 2>/dev/null || true; exit 0 ;;
   esac
 done
 
-# ask VAR "Question" "défaut" : pose la question sauf en mode --yes ou sans terminal
+is_tty() { [[ -t 0 ]]; }
+
+# ask VAR "Question" "défaut" [force] : pose la question sauf en mode --yes ou sans terminal.
+# Avec « force », la question est posée même après le choix « Par défaut » du menu.
 ask() {
-  local var=$1 q=$2 def=$3 val
-  if [[ $YES -eq 1 || ! -t 0 ]]; then
+  local var=$1 q=$2 def=$3 force=${4:-} val
+  if [[ $YES_CLI -eq 1 ]] || ! is_tty || { [[ $YES -eq 1 ]] && [[ -z "$force" ]]; }; then
     printf -v "$var" '%s' "${!var:-$def}"
     return
   fi
   read -r -p "$q [${!var:-$def}] : " val || true
   printf -v "$var" '%s' "${val:-${!var:-$def}}"
 }
+
+# Un nom d'hôte Proxmox : lettres, chiffres et tirets, sans tiret au début ni à la fin, 63 caractères au plus.
+valid_name() { [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]; }
 
 # ---------- Valeurs par défaut ----------
 first_storage() { pvesm status --content "$1" 2>/dev/null | awk 'NR>1 && $3=="active" {print $1}' ; }
@@ -64,12 +75,13 @@ cat <<'BANNER'
  |_____|\___/ \____|____/   Loki + Grafana pour Proxmox VE
 
 BANNER
+printf '  Créé par \033[1m%s\033[0m  ·  licence MIT\n  %s\n\n' "$AUTHOR" "$REPO_URL"
 
 # Menu Par défaut / Avancé (comme community-scripts)
-if [[ $YES -eq 0 && -t 0 ]] && command -v whiptail >/dev/null 2>&1; then
-  MODE=$(whiptail --backtitle "Homelab Logs" --title "Centre de logs" \
+if [[ $YES -eq 0 ]] && is_tty && command -v whiptail >/dev/null 2>&1; then
+  MODE=$(whiptail --backtitle "Homelab Logs · par ${AUTHOR}" --title "Centre de logs" \
     --menu "Choisis le mode d'installation :" 14 70 3 \
-    1 "Par défaut (DHCP, 2 vCPU, 2 Gio, 20 Go, rétention 14 jours)" \
+    1 "Par défaut (DHCP, 2 vCPU, 2 Gio, 20 Go, 14 jours, nom au choix)" \
     2 "Avancé (je choisis chaque paramètre)" \
     3 "Annuler" 3>&1 1>&2 2>&3) || exit 0
   [[ "$MODE" == "3" ]] && exit 0
@@ -78,7 +90,13 @@ fi
 
 msg "Configuration du conteneur (Entrée = valeur par défaut)"
 ask CTID        "ID du conteneur"                         "$DEF_CTID"
-ask CT_NAME     "Nom d'hôte"                              "logs"
+ask CT_NAME     "Nom du conteneur (Entrée = garder ${DEFAULT_NAME})" "$DEFAULT_NAME" force
+while ! valid_name "$CT_NAME"; do
+  if [[ $YES_CLI -eq 1 ]] || ! is_tty; then die "Nom invalide : $CT_NAME (lettres, chiffres et tirets seulement)."; fi
+  echo "Nom invalide : lettres, chiffres et tirets seulement, sans tiret au début ni à la fin, 63 caractères au plus." >&2
+  CT_NAME=""
+  ask CT_NAME   "Nom du conteneur (Entrée = garder ${DEFAULT_NAME})" "$DEFAULT_NAME" force
+done
 ask CORES       "vCPU"                                    "2"
 ask RAM         "RAM en Mio"                              "2048"
 ask DISK        "Disque en Gio"                           "20"
@@ -178,9 +196,12 @@ cat <<EOF
   Les mots de passe sont aussi dans /root/.credentials du conteneur.
 
   Étape suivante : installer les agents sur tes LXC, ton hôte et tes VM.
-    git clone https://github.com/nathan-drancourt/proxmox-logs-homelab
-    cd proxmox-logs-homelab
+    wget -qO- ${REPO_URL}/archive/refs/heads/main.tar.gz | tar xz
+    cd proxmox-logs-homelab-main
     bash tools/deploy-agents.sh ${CT_IP} --host
 
   Pense à fixer l'IP du conteneur (${CT_IP}) : les agents s'y connectent.
+
+  Conteneur « ${CT_NAME} » (ID ${CTID}) créé avec Homelab Logs de ${AUTHOR}
+  ${REPO_URL}
 EOF
