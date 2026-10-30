@@ -8,6 +8,7 @@
 - Ajout de `tools/detect-docker.sh` (liste les LXC qui ont Docker).
 - Ajout facultatif d'une page web simple (`tools/web/index.html`) et de son installation nginx (`tools/install-dashboard.sh`).
 - Alertes Discord facultatives (`tools/install-alerts.sh`) : machine silencieuse, rafale d'erreurs, plus aucun log reçu.
+- Le compte d'erreurs ignore aussi les requêtes annulées (`context canceled`), les messages d'information qui contiennent le mot « error » et le refus AppArmor connu de `rsyslogd` dans un LXC. Les autres refus restent comptés.
 - Logs plus lisibles dans Grafana : codes couleur et horodatages en double retirés, message extrait des lignes clé=valeur, erreurs répétées regroupées.
 - Corrections : choix du modèle Debian selon l'architecture, propriétaire de Loki, prérequis de l'agent non mis à jour.
 

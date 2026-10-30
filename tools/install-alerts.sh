@@ -159,7 +159,7 @@ groups:
             datasourceUid: loki
             model:
               datasource: { type: loki, uid: loki }
-              expr: 'sum by (host) (count_over_time({host=~".+"} |~ "(?i)(error|erreur|fatal|critical|panic|failed|denied)" !~ "caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time" [10m]))'
+              expr: 'sum by (host) (count_over_time({host=~".+"} |~ "(?i)(error|erreur|fatal|critical|panic|failed|denied)" !~ "caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|context canceled|flag evaluation succeeded|profile=.rsyslogd. name=./run/systemd/journal/dev-log|count_over_time" [10m]))'
               queryType: instant
               refId: A
           - refId: B

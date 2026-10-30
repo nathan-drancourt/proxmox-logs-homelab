@@ -152,7 +152,7 @@
 
 <script>
 const ERR = '(?i)(error|erreur|fatal|critical|panic|failed|denied)';
-const NOISE = 'caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time';
+const NOISE = 'caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|context canceled|flag evaluation succeeded|profile=.rsyslogd. name=./run/systemd/journal/dev-log|count_over_time';
 const ERR_FILTER = ` |~ "${ERR}" !~ "${NOISE}"`;
 const API = '/loki/api/v1/';
 const POINTS = 48;

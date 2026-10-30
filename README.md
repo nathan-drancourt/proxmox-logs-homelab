@@ -89,6 +89,8 @@ Ouvre `http://IP_LOGS:3000` (utilisateur `admin`).
 - **Drilldown → Logs** : navigation visuelle par machine (label `host`), service (`unit`) et niveau (`level`).
 - **Explore** : requêtes LogQL, par exemple `{host="glance"} |= "error"`.
 
+Le compte d'erreurs (indicateurs, vignettes, alerte) ignore le bruit connu : requêtes annulées de Loki et Grafana, messages d'information qui contiennent le mot « error », et le refus AppArmor de `rsyslogd` dans un LXC (conflit de profil inoffensif). Les autres refus AppArmor restent comptés. Pour changer la liste, modifie le filtre `!~ "..."` des requêtes du tableau de bord.
+
 Labels disponibles : `host` · `job` (`journal` ou `docker`) · `unit` · `level` · `container`.
 
 ### Page web simple (facultatif)

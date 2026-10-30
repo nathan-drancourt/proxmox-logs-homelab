@@ -3,7 +3,7 @@
   "title": "Homelab / Logs",
   "tags": ["homelab", "logs"],
   "schemaVersion": 39,
-  "version": 4,
+  "version": 5,
   "editable": true,
   "refresh": "30s",
   "timezone": "browser",
@@ -110,14 +110,14 @@
       "id": 3,
       "type": "stat",
       "title": "Erreurs sur 1 h",
-      "description": "Lignes contenant error, erreur, fatal, critical, panic, failed ou denied sur la dernière heure. Les requêtes de ce tableau de bord sont exclues du compte. Vert : 0. Orange : 10 ou plus. Rouge : 100 ou plus.",
+      "description": "Lignes contenant error, erreur, fatal, critical, panic, failed ou denied sur la dernière heure. Le bruit connu est exclu (requêtes du tableau de bord, messages d'information, refus AppArmor de rsyslogd dans le LXC 200). Vert : 0. Orange : 10 ou plus. Rouge : 100 ou plus.",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
           "refId": "A",
           "queryType": "instant",
-          "expr": "sum(count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" [1h])) or vector(0)"
+          "expr": "sum(count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|context canceled|flag evaluation succeeded|profile=.rsyslogd. name=./run/systemd/journal/dev-log|count_over_time\" [1h])) or vector(0)"
         }
       ],
       "fieldConfig": {
@@ -153,7 +153,7 @@
         {
           "refId": "A",
           "queryType": "instant",
-          "expr": "sum(count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" [5m])) or vector(0)"
+          "expr": "sum(count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|context canceled|flag evaluation succeeded|profile=.rsyslogd. name=./run/systemd/journal/dev-log|count_over_time\" [5m])) or vector(0)"
         }
       ],
       "fieldConfig": {
@@ -199,7 +199,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(count_over_time({host=\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" [$__auto])) or vector(0)"
+          "expr": "sum(count_over_time({host=\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|context canceled|flag evaluation succeeded|profile=.rsyslogd. name=./run/systemd/journal/dev-log|count_over_time\" [$__auto])) or vector(0)"
         }
       ],
       "fieldConfig": {
@@ -264,13 +264,13 @@
       "id": 6,
       "type": "timeseries",
       "title": "Erreurs par machine",
-      "description": "Lignes d'erreur au fil du temps, machine par machine. Les requêtes de ce tableau de bord sont exclues.",
+      "description": "Lignes d'erreur au fil du temps, machine par machine. Le bruit connu est exclu (requêtes du tableau de bord, messages d'information, refus AppArmor de rsyslogd dans le LXC 200).",
       "gridPos": { "h": 7, "w": 12, "x": 12, "y": 11 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (host) (count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" [$__auto]))",
+          "expr": "sum by (host) (count_over_time({host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|context canceled|flag evaluation succeeded|profile=.rsyslogd. name=./run/systemd/journal/dev-log|count_over_time\" [$__auto]))",
           "legendFormat": "{{host}}"
         }
       ],
@@ -338,7 +338,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|count_over_time\" | logfmt | drop __error__, __error_details__ | line_format `[{{.host}}]{{ if or .unit .container }} {{ trimSuffix \".service\" .unit }}{{ .container }}{{ end }} : {{ if .msg }}{{ .msg }}{{ if .err }} ({{ .err }}){{ end }}{{ if .error }} ({{ .error }}){{ end }}{{ else }}{{ regexReplaceAll \"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z? \" (regexReplaceAll \"[[:cntrl:]]?[[][0-9;]*m\" (__line__) \"\") \"\" }}{{ end }}`"
+          "expr": "{host=~\"$host\"} |~ \"(?i)(error|erreur|fatal|critical|panic|failed|denied)\" !~ \"caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|context canceled|flag evaluation succeeded|profile=.rsyslogd. name=./run/systemd/journal/dev-log|count_over_time\" | logfmt | drop __error__, __error_details__ | line_format `[{{.host}}]{{ if or .unit .container }} {{ trimSuffix \".service\" .unit }}{{ .container }}{{ end }} : {{ if .msg }}{{ .msg }}{{ if .err }} ({{ .err }}){{ end }}{{ if .error }} ({{ .error }}){{ end }}{{ else }}{{ regexReplaceAll \"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z? \" (regexReplaceAll \"[[:cntrl:]]?[[][0-9;]*m\" (__line__) \"\") \"\" }}{{ end }}`"
         }
       ],
       "options": {
