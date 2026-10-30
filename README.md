@@ -109,9 +109,11 @@ Trois alertes Grafana préviennent dans un salon Discord :
 
 | Alerte | Se déclenche quand |
 |---|---|
-| Machine silencieuse | une machine connue n'a plus envoyé de log depuis 2 h |
-| Rafale d'erreurs | plus de 40 erreurs en 10 min sur une machine |
+| Machine silencieuse | une machine connue n'a plus envoyé de log depuis 3 h |
+| Erreur grave | mémoire saturée (OOM), disque plein ou en erreur, plantage du noyau ou d'un programme, arrêt d'un service important (alloy, loki, grafana-server, jellyfin, docker, pve, tailscaled, AdGuardHome, nginx), ou niveau « crit » du journal |
 | Plus aucun log reçu | Loki ne reçoit plus rien depuis 10 min |
+
+Le simple mot « error » dans un log ne déclenche rien : il reste visible dans le tableau de bord mais ne dérange pas Discord. Sur un homelab réel, cette définition donne quelques messages par mois au plus. Pour ajouter un service à surveiller, modifie la liste dans la règle « Erreur grave » de `/etc/grafana/provisioning/alerting/homelab.yaml`, puis `systemctl restart grafana-server`.
 
 Chaque message indique la gravité (⚠️ ou 🚨), la machine, la valeur mesurée, depuis quand (l'heure relative s'affiche dans ton fuseau horaire) et un lien vers le tableau de bord filtré sur cette machine. Un second message 🟢 arrive quand tout rentre dans l'ordre.
 

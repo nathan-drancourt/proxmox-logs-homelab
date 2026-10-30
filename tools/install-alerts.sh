@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # Installe trois alertes Grafana qui préviennent sur Discord, dans le LXC des logs.
+# Seules les situations importantes déclenchent un message : pas de simple mot « error ».
 # À lancer DANS le conteneur, en root, avec l'URL du webhook Discord en variable :
 #   read -rsp "Webhook Discord : " W; echo
 #   pct exec <ctid> -- env DISCORD_WEBHOOK_URL="$W" bash -c "$(wget -qLO - https://raw.githubusercontent.com/nathan-drancourt/proxmox-logs-homelab/main/tools/install-alerts.sh)"
 #
 # Alertes créées :
-#   - Machine silencieuse : une machine connue n'a plus envoyé de log depuis 2 h
-#   - Rafale d'erreurs    : plus de 40 erreurs en 10 min sur une machine
+#   - Machine silencieuse : une machine connue n'a plus envoyé de log depuis 3 h
+#   - Erreur grave        : mémoire saturée (OOM), disque plein ou en erreur, plantage du
+#                           noyau ou d'un programme, ou arrêt d'un service important
+#                           (alloy, loki, grafana-server, jellyfin, docker, pve, tailscaled,
+#                           AdGuardHome, nginx), ou un niveau « crit » du journal
 #   - Plus aucun log      : plus rien reçu du tout depuis 10 min
 #
 # L'URL du webhook est un secret : elle reste dans /etc/default/grafana-server (droits 640)
@@ -62,8 +66,8 @@ templates:
       {{ define "homelab.alert" -}}
       {{ if eq .Labels.severity "critical" }}🚨{{ else }}⚠️{{ end }} **{{ .Labels.alertname }}**{{ if .Labels.host }} · `{{ .Labels.host }}`{{ end }}
       {{ .Annotations.summary }}
-      {{- if eq .Labels.alertname "Rafale d'erreurs" }}{{ with .Values.B }}
-      📊 **{{ printf "%.0f" . }}** erreurs sur les 10 dernières minutes{{ end }}{{ end }}
+      {{- if eq .Labels.alertname "Erreur grave" }}{{ with .Values.B }}
+      📊 **{{ printf "%.0f" . }}** événement(s) sur les 10 dernières minutes{{ end }}{{ end }}
       > {{ .Annotations.description }}
       {{ if eq .Status "firing" }}⏱️ Depuis <t:{{ .StartsAt.Unix }}:R>{{ else }}✅ Résolu <t:{{ .EndsAt.Unix }}:R>{{ end }} · [Voir les logs](__GRAFANA_URL__/d/homelab-logs{{ if .Labels.host }}?var-host={{ .Labels.host }}{{ end }})
       {{- end }}
@@ -95,7 +99,11 @@ policies:
     group_by: ['alertname', 'host']
     group_wait: 30s
     group_interval: 5m
-    repeat_interval: 6h
+    repeat_interval: 12h
+
+deleteRules:
+  - orgId: 1
+    uid: homelab-rafale-erreurs
 
 groups:
   - orgId: 1
@@ -110,7 +118,7 @@ groups:
         noDataState: OK
         execErrState: OK
         annotations:
-          summary: Une machine n'envoie plus de logs depuis 2 h.
+          summary: Une machine n'envoie plus de logs depuis 3 h.
           description: Vérifie qu'elle est allumée et que l'agent tourne avec systemctl status alloy.
         labels:
           severity: warning
@@ -120,7 +128,7 @@ groups:
             datasourceUid: loki
             model:
               datasource: { type: loki, uid: loki }
-              expr: 'sum by (host) (count_over_time({host=~".+"}[3d])) unless sum by (host) (count_over_time({host=~".+"}[2h]))'
+              expr: 'sum by (host) (count_over_time({host=~".+"}[3d])) unless sum by (host) (count_over_time({host=~".+"}[3h]))'
               queryType: instant
               refId: A
           - refId: B
@@ -142,24 +150,24 @@ groups:
                 - evaluator: { type: gt, params: [0] }
               refId: C
 
-      - uid: homelab-rafale-erreurs
-        title: Rafale d'erreurs
+      - uid: homelab-erreur-grave
+        title: Erreur grave
         condition: C
-        for: 5m
+        for: 0s
         noDataState: OK
         execErrState: OK
         annotations:
-          summary: Plus de 40 erreurs en 10 minutes sur une machine.
-          description: Ouvre le tableau de bord Homelab / Logs, panneau Dernières erreurs.
+          summary: Un problème sérieux vient d'être signalé (mémoire saturée, disque en erreur, plantage ou service important arrêté).
+          description: Ouvre le tableau de bord Homelab / Logs et cherche la machine concernée dans Tous les logs.
         labels:
-          severity: warning
+          severity: critical
         data:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: loki
             model:
               datasource: { type: loki, uid: loki }
-              expr: 'sum by (host) (count_over_time({host=~".+"} |~ "(?i)(error|erreur|fatal|critical|panic|failed|denied)" !~ "caller=spanlogger|caller=scheduler_processor|logger=plugin.loki|Request Completed|without error|context canceled|flag evaluation succeeded|profile=.rsyslogd. name=./run/systemd/journal/dev-log|count_over_time" [10m]))'
+              expr: 'sum by (host) (count_over_time({host=~".+"} |~ "(?i)(out of memory|oom-kill|invoked oom-killer|killed process [0-9]+|no space left on device|i/o error|read-only file system|ext4-fs error|kernel panic|segfault|core dumped|(alloy|loki|grafana-server|jellyfin|docker|containerd|pve-cluster|pvedaemon|pveproxy|pvestatd|tailscaled|adguardhome|nginx)[.]service: (failed with result|main process exited))" !~ "caller=spanlogger|count_over_time|logger=plugin.loki" [10m])) or sum by (host) (count_over_time({host=~".+", level=~"crit|alert|emerg"} !~ "preauth" [10m]))'
               queryType: instant
               refId: A
           - refId: B
@@ -178,7 +186,7 @@ groups:
               type: threshold
               expression: B
               conditions:
-                - evaluator: { type: gt, params: [40] }
+                - evaluator: { type: gt, params: [0] }
               refId: C
 
       - uid: homelab-aucun-log
@@ -265,8 +273,8 @@ read -r -d '' PAYLOAD <<'JSON' || true
     "description": "Tu seras prévenu ici quand quelque chose cloche. Chaque message indique la machine, depuis quand, et un lien vers ses logs.",
     "color": 3066993,
     "fields": [
-      { "name": "⚠️ Machine silencieuse", "value": "Plus aucun log depuis 2 h", "inline": true },
-      { "name": "⚠️ Rafale d'erreurs", "value": "Plus de 40 erreurs en 10 min", "inline": true },
+      { "name": "⚠️ Machine silencieuse", "value": "Plus aucun log depuis 3 h", "inline": true },
+      { "name": "🚨 Erreur grave", "value": "Mémoire, disque, plantage ou service important arrêté", "inline": true },
       { "name": "🚨 Plus aucun log reçu", "value": "Loki ne reçoit plus rien depuis 10 min", "inline": true }
     ],
     "footer": { "text": "Homelab Logs" }
