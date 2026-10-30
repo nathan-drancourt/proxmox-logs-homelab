@@ -66,7 +66,7 @@ Options utiles :
 Exemple complet :
 
 ```
-bash tools/deploy-agents.sh 192.168.1.30 --host --docker 201 --vm nathan@192.168.1.40
+bash tools/deploy-agents.sh 192.168.1.30 --host --docker 201 --vm utilisateur@192.168.1.40
 ```
 
 Le script affiche un résumé : `ok`, `ignoré` (système non Debian ou Ubuntu) ou `échec`.
