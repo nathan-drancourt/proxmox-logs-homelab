@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installe trois alertes Grafana qui préviennent sur Discord, dans le LXC des logs.
+# Installe quatre alertes Grafana qui préviennent sur Discord, dans le LXC des logs.
 # Seules les situations importantes déclenchent un message : pas de simple mot « error ».
 # À lancer DANS le conteneur, en root, avec l'URL du webhook Discord en variable :
 #   read -rsp "Webhook Discord : " W; echo
@@ -9,9 +9,11 @@
 #   - Machine silencieuse : une machine connue n'a plus envoyé de log depuis 3 h
 #   - Erreur grave        : mémoire saturée (OOM), disque plein ou en erreur, plantage du
 #                           noyau ou d'un programme, ou arrêt d'un service important
-#                           (alloy, loki, grafana-server, jellyfin, docker, pve, tailscaled,
-#                           AdGuardHome, nginx), ou un niveau « crit » du journal
+#                           (alloy, vaultwarden, loki, grafana-server, jellyfin, docker, pve,
+#                           tailscaled, AdGuardHome, nginx), ou un niveau « crit » du journal
 #   - Plus aucun log      : plus rien reçu du tout depuis 10 min
+#   - VPN Gluetun         : le conteneur gluetun relance son VPN en boucle (plus de 2 fois
+#                           en 10 min) sans se rétablir. Un redémarrage isolé ne prévient pas.
 #
 # L'URL du webhook est un secret : elle reste dans /etc/default/grafana-server (droits 640)
 # et n'est jamais écrite dans le dépôt. Si Grafana ne redémarre pas, tout est annulé.
@@ -68,6 +70,8 @@ templates:
       {{ .Annotations.summary }}
       {{- if eq .Labels.alertname "Erreur grave" }}{{ with .Values.B }}
       📊 **{{ printf "%.0f" . }}** événement(s) sur les 10 dernières minutes{{ end }}{{ end }}
+      {{- if eq .Labels.alertname "VPN Gluetun ne revient pas" }}{{ with .Values.B }}
+      🔁 **{{ printf "%.0f" . }}** redémarrages du VPN sur les 10 dernières minutes{{ end }}{{ end }}
       > {{ .Annotations.description }}
       {{ if eq .Status "firing" }}⏱️ Depuis <t:{{ .StartsAt.Unix }}:R>{{ else }}✅ Résolu <t:{{ .EndsAt.Unix }}:R>{{ end }} · [Voir les logs](__GRAFANA_URL__/d/homelab-logs{{ if .Labels.host }}?var-host={{ .Labels.host }}{{ end }})
       {{- end }}
@@ -167,7 +171,7 @@ groups:
             datasourceUid: loki
             model:
               datasource: { type: loki, uid: loki }
-              expr: 'sum by (host) (count_over_time({host=~".+"} |~ "(?i)(out of memory|oom-kill|invoked oom-killer|killed process [0-9]+|no space left on device|i/o error|read-only file system|ext4-fs error|kernel panic|segfault|core dumped|(alloy|loki|grafana-server|jellyfin|docker|containerd|pve-cluster|pvedaemon|pveproxy|pvestatd|tailscaled|adguardhome|nginx)[.]service: (failed with result|main process exited))" !~ "caller=spanlogger|count_over_time|logger=plugin.loki" [10m])) or sum by (host) (count_over_time({host=~".+", level=~"crit|alert|emerg"} !~ "preauth" [10m]))'
+              expr: 'sum by (host) (count_over_time({host=~".+"} |~ "(?i)(out of memory|oom-kill|invoked oom-killer|killed process [0-9]+|no space left on device|i/o error|read-only file system|ext4-fs error|kernel panic|segfault|core dumped|(alloy|vaultwarden|loki|grafana-server|jellyfin|docker|containerd|pve-cluster|pvedaemon|pveproxy|pvestatd|tailscaled|adguardhome|nginx)[.]service: (failed with result|main process exited))" !~ "caller=spanlogger|count_over_time|logger=plugin.loki" [10m])) or sum by (host) (count_over_time({host=~".+", level=~"crit|alert|emerg"} !~ "preauth" [10m]))'
               queryType: instant
               refId: A
           - refId: B
@@ -227,6 +231,45 @@ groups:
               conditions:
                 - evaluator: { type: lt, params: [1] }
               refId: C
+
+      - uid: homelab-vpn-gluetun
+        title: VPN Gluetun ne revient pas
+        condition: C
+        for: 1m
+        noDataState: OK
+        execErrState: OK
+        annotations:
+          summary: Le VPN de Gluetun redémarre en boucle depuis plusieurs minutes et ne se rétablit pas.
+          description: Un redémarrage isolé est normal et n'envoie rien. Vérifie le fournisseur VPN, la clé WireGuard et la connexion du LXC Gluetun.
+        labels:
+          severity: critical
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: loki
+            model:
+              datasource: { type: loki, uid: loki }
+              expr: 'sum by (host) (count_over_time({container="gluetun"} |= "restarting VPN because it failed" [10m]))'
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              datasource: { type: __expr__, uid: __expr__ }
+              type: reduce
+              expression: A
+              reducer: last
+              settings: { mode: dropNN }
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              datasource: { type: __expr__, uid: __expr__ }
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [2] }
+              refId: C
 EOF
 IP=$(hostname -I | awk '{print $1}')
 GURL="http://${IP}:3000"
@@ -259,10 +302,10 @@ if [[ "$AUTH_CODE" == "200" ]]; then
       | grep -o '"uid":"homelab-[a-z-]*"' | sort -u | wc -l || true)
   C=$(curl -fs -u "admin:$PW" http://127.0.0.1:3000/api/v1/provisioning/contact-points 2>/dev/null \
       | grep -c '"name":"discord-homelab"' || true)
-  if [[ "${N:-0}" -eq 3 && "${C:-0}" -ge 1 ]]; then
-    msg "Vérifié : 3 alertes et le contact Discord sont chargés."
+  if [[ "${N:-0}" -eq 4 && "${C:-0}" -ge 1 ]]; then
+    msg "Vérifié : 4 alertes et le contact Discord sont chargés."
   else
-    echo "Avertissement : ${N:-0} alerte(s) et ${C:-0} contact(s) trouvés (attendu : 3 et 1). Regarde Alerting dans Grafana." >&2
+    echo "Avertissement : ${N:-0} alerte(s) et ${C:-0} contact(s) trouvés (attendu : 4 et 1). Regarde Alerting dans Grafana." >&2
     journalctl -u grafana-server --since "-2 min" --no-pager 2>/dev/null | grep -iE "alerting|provision" | tail -8 >&2 || true
   fi
 else
@@ -281,7 +324,8 @@ read -r -d '' PAYLOAD <<'JSON' || true
     "fields": [
       { "name": "⚠️ Machine silencieuse", "value": "Plus aucun log depuis 3 h", "inline": true },
       { "name": "🚨 Erreur grave", "value": "Mémoire, disque, plantage ou service important arrêté", "inline": true },
-      { "name": "🚨 Plus aucun log reçu", "value": "Loki ne reçoit plus rien depuis 10 min", "inline": true }
+      { "name": "🚨 Plus aucun log reçu", "value": "Loki ne reçoit plus rien depuis 10 min", "inline": true },
+      { "name": "🚨 VPN Gluetun", "value": "Le VPN redémarre en boucle sans revenir", "inline": true }
     ],
     "footer": { "text": "Homelab Logs" }
   }]

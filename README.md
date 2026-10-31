@@ -107,13 +107,14 @@ Ouvre ensuite `http://IP_LOGS:8080/`. Le relais vers Loki est en lecture seule. 
 
 ### Alertes sur Discord (facultatif)
 
-Trois alertes Grafana préviennent dans un salon Discord :
+Quatre alertes Grafana préviennent dans un salon Discord :
 
 | Alerte | Se déclenche quand |
 |---|---|
 | Machine silencieuse | une machine connue n'a plus envoyé de log depuis 3 h |
-| Erreur grave | mémoire saturée (OOM), disque plein ou en erreur, plantage du noyau ou d'un programme, arrêt d'un service important (alloy, loki, grafana-server, jellyfin, docker, pve, tailscaled, AdGuardHome, nginx), ou niveau « crit » du journal |
+| Erreur grave | mémoire saturée (OOM), disque plein ou en erreur, plantage du noyau ou d'un programme, arrêt d'un service important (alloy, vaultwarden, loki, grafana-server, jellyfin, docker, pve, tailscaled, AdGuardHome, nginx), ou niveau « crit » du journal |
 | Plus aucun log reçu | Loki ne reçoit plus rien depuis 10 min |
+| VPN Gluetun ne revient pas | le conteneur `gluetun` relance son VPN en boucle (plus de 2 fois en 10 min) sans se rétablir. Un redémarrage isolé, qui se règle seul en quelques secondes, ne prévient pas. Cette alerte ne concerne que les conteneurs nommés `gluetun` |
 
 Le simple mot « error » dans un log ne déclenche rien : il reste visible dans le tableau de bord mais ne dérange pas Discord. Sur un homelab réel, cette définition donne quelques messages par mois au plus. Pour ajouter un service à surveiller, modifie la liste dans la règle « Erreur grave » de `/etc/grafana/provisioning/alerting/homelab.yaml`, puis `systemctl restart grafana-server`.
 
