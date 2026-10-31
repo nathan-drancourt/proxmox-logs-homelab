@@ -11,7 +11,7 @@
 - Alertes Discord facultatives (`tools/install-alerts.sh`) : machine silencieuse (3 h), erreur grave (mémoire, disque, plantage, service important arrêté, dont vaultwarden), plus aucun log reçu, VPN Gluetun qui ne revient pas (redémarrages en boucle). Le simple mot « error » ne déclenche plus de message.
 - Le compte d'erreurs ignore aussi les requêtes annulées (`context canceled`), les messages d'information qui contiennent le mot « error » et le refus AppArmor connu de `rsyslogd` dans un LXC. Les autres refus restent comptés.
 - Logs plus lisibles dans Grafana : codes couleur et horodatages en double retirés, message extrait des lignes clé=valeur, erreurs répétées regroupées.
-- Corrections : choix du modèle Debian selon l'architecture, propriétaire de Loki, prérequis de l'agent non mis à jour.
+- Corrections : choix du modèle Debian selon l'architecture, propriétaire de Loki, prérequis de l'agent non mis à jour, droits du dossier des modules de Grafana (erreurs « permission denied » au démarrage).
 
 ## 0.1.0 (2026-10-29)
 

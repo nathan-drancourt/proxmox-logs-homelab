@@ -84,6 +84,8 @@ systemctl restart loki
 # ---------- Grafana ----------
 msg "Configuration de Grafana"
 grafana cli plugins install grafana-lokiexplore-app >/dev/null 2>&1 || true
+# La commande ci-dessus tourne en root : sans ce chown, Grafana ne peut pas écrire dans son dossier de modules.
+chown -R grafana:grafana /var/lib/grafana/plugins 2>/dev/null || true
 
 cat >> /etc/default/grafana-server <<'EOF'
 GF_ANALYTICS_REPORTING_ENABLED=false
