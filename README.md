@@ -6,11 +6,17 @@
  |_____|\___/ \____|____/
 ```
 
-# Homelab Logs : un centre de logs pour Proxmox VE
+# Homelab Logs : un script qui crée un centre de logs (Grafana + Loki) sur Proxmox VE
 
-**Une commande sur l'hôte Proxmox crée un LXC avec Loki et Grafana. Une seconde commande installe l'agent sur tous tes LXC, sur l'hôte et sur tes VM.**
+**Homelab Logs est un script d'installation pour Proxmox VE. Lancé sur l'hôte, il crée un conteneur LXC et y installe un centre de logs complet : Loki stocke les logs et Grafana les affiche. Un second script déploie l'agent Grafana Alloy sur tes LXC, tes VM et l'hôte pour envoyer leurs logs au centre.**
 
-Gratuit. Léger (2 Go de RAM suffisent). Visuel : tableau de bord prêt à l'emploi et Logs Drilldown de Grafana pour naviguer à la souris.
+Gratuit. Léger (2 Go de RAM suffisent). Tableau de bord prêt à l'emploi et Logs Drilldown de Grafana pour naviguer à la souris.
+
+## Comment ça marche
+
+1. `ct/logs.sh` s'exécute sur l'hôte Proxmox : il crée le LXC et y installe Loki et Grafana.
+2. `tools/deploy-agents.sh` installe Grafana Alloy sur les machines à surveiller.
+3. Tu consultes tous les logs dans Grafana, à l'adresse affichée à la fin de l'installation.
 
 Inspiré de [community-scripts.org](https://community-scripts.org) · licence MIT
 
